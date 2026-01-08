@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoCabs.agi - The Zero Gravity Ride-Sharing DApp</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* Custom Theme Colors for AutoCabs.agi */
+        :root {
+            --color-primary: #1A73E8; /* Deep Blue - Trust/Blockchain */
+            --color-success: #10B981; /* Green - Paid/Clearance */
+            --color-error: #EF4444;   /* Red - Cancel/Alert */
+        }
+        .bg-primary { background-color: var(--color-primary); }
+        .text-primary { color: var(--color-primary); }
+        .bg-success { background-color: var(--color-success); }
+        .border-primary { border-color: var(--color-primary); }
+        
+        /* Basic Map Placeholder Style */
+        .map-placeholder {
+            height: 400px;
+            background-color: #e2e8f0;
+            background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="8" fill="%2394a3b8">Google Maps Live View</text></svg>');
+            background-size: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 antialiased">
+
+    <header class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-primary">
+                AutoCabs.<span class="text-gray-900">agi</span>
+            </h1>
+            <button id="wallet-connect-btn" class="bg-primary text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition duration-150">
+                Connect Wallet
+            </button>
+            <div id="wallet-info" class="hidden flex items-center space-x-2">
+                <span class="text-sm text-gray-700 font-medium">Wallet: <span id="wallet-address-display"></span></span>
+                <button class="text-sm text-red-500 hover:underline" onclick="disconnectWallet()">Disconnect</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div id="dapp-container" class="bg-white shadow-xl rounded-xl p-6 md:p-10">
+
+            <div id="ride-request-form">
+                <h2 class="text-2xl font-bold mb-6 text-gray-900">Book Your 0G Cab</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="col-span-1">
+                        <div class="map-placeholder rounded-lg mb-4">
+                            <p class="text-center text-gray-500 font-semibold">Live Map View (Google Maps API)</p>
+                        </div>
+                        <div class="space-y-4">
+                            <input type="text" id="pickup-input" placeholder="📍 Current Location / Pickup Address" class="w-full border border-gray-300 p-3 rounded-lg focus:ring-primary focus:border-primary">
+                            <input type="text" id="dropoff-input" placeholder="🏁 Destination Address" class="w-full border border-gray-300 p-3 rounded-lg focus:ring-primary focus:border-primary">
+                        </div>
+                    </div>
+
+                    <div class="col-span-1 bg-gray-50 p-6 rounded-lg border border-gray-200">
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center pb-3 border-b">
+                                <span class="text-lg font-medium text-gray-700">Estimated Fare</span>
+                                <span class="text-2xl font-bold text-gray-900" id="estimated-fare">$25.00</span>
+                            </div>
+                            
+                            <h3 class="text-lg font-medium pt-2">Secure Payment Method:</h3>
+                            <div class="space-y-3">
+                                <label class="flex items-center p-3 rounded-lg border border-primary bg-primary/10 cursor-pointer">
+                                    <input type="radio" name="payment" value="crypto" checked class="h-4 w-4 text-primary focus:ring-primary">
+                                    <span class="ml-3 text-gray-800 font-semibold">0G Stablecoin (Recommended)</span>
+                                    <span class="ml-auto text-xs bg-primary text-white px-2 py-0.5 rounded-full">Fast Settlement</span>
+                                </label>
+                                <label class="flex items-center p-3 rounded-lg border border-gray-300 hover:border-gray-500 cursor-pointer">
+                                    <input type="radio" name="payment" value="fiat" class="h-4 w-4 text-primary focus:ring-primary">
+                                    <span class="ml-3 text-gray-800 font-semibold">Card (Stripe/MoonPay Bridge)</span>
+                                    <span class="ml-auto text-xs bg-gray-400 text-white px-2 py-0.5 rounded-full">KYC Bridge</span>
+                                </label>
+                            </div>
+
+                            <div class="pt-4">
+                                <button id="request-ride-btn" class="w-full bg-primary text-white text-xl py-4 rounded-lg font-extrabold hover:bg-primary/90 transition duration-200" disabled>
+                                    Request Cab & Lock Funds (0G)
+                                </button>
+                                <p id="request-status" class="text-center mt-3 text-sm text-gray-600"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="live-trip-view" class="hidden">
+                <div class="p-6 bg-success/10 border border-success rounded-lg text-center mb-6">
+                    <h2 class="text-3xl font-extrabold text-success">Ride Accepted!</h2>
+                    <p class="text-gray-700 mt-2">Driver is en route. Funds are locked securely on 0G.</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="col-span-1 space-y-4">
+                        <div class="p-4 bg-white rounded-lg shadow-md">
+                            <h3 class="font-bold text-gray-800 mb-2">Driver Details</h3>
+                            <div class="flex items-center space-x-3">
+                                <img id="driver-photo" src="https://via.placeholder.com/60?text=Driver" alt="Driver Photo" class="w-12 h-12 rounded-full border-2 border-primary">
+                                <div>
+                                    <p class="font-semibold text-lg" id="driver-name">Loading...</p>
+                                    <p class="text-sm text-gray-500" id="driver-eta">ETA: Calculating...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-gray-50 rounded-lg shadow-md h-64 flex flex-col">
+                            <h3 class="font-bold text-gray-800 mb-2 border-b pb-2">Live Chat</h3>
+                            <div id="chat-messages" class="flex-grow overflow-y-auto text-sm space-y-1 mb-2">
+                                </div>
+                            <input type="text" id="chat-input" placeholder="Type a message..." class="w-full border border-gray-300 p-2 rounded-lg" disabled>
+                        </div>
+                    </div>
+                    
+                    <div class="col-span-2">
+                        <div class="map-placeholder rounded-lg h-full">
+                            <p class="text-center text-gray-500 font-semibold">Driver Tracking & Locked Route (Socket.io)</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="paid-clearance" class="hidden fixed inset-0 bg-success/95 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div class="p-12 bg-white rounded-xl shadow-2xl text-center">
+                        <svg class="w-20 h-20 mx-auto text-success mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <h3 class="text-4xl font-extrabold text-success">TRANSACTION SETTLED!</h3>
+                        <p class="mt-2 text-xl text-gray-700">Payment completed instantly on the 0G Blockchain.</p>
+                        <p class="text-sm mt-4 text-gray-500">Tx Hash: <span id="final-tx-hash">0x...</span></p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="text-center py-6 text-gray-500 text-sm">
+        &copy; 2024 AutoCabs.agi. Payments secured by 0G ZK-Rollups and trustless Escrow.
+    </footer>
+
+    <script>
+        // --- SIMULATED DAPP LOGIC ---
+        let walletConnected = false;
+        let currentRideId = null;
+        const RIDE_ID_MOCK = 12345;
+        const driver = { name: "Sarah K.", eta: "3 min", photo: "https://via.placeholder.com/60/1A73E8/FFFFFF?text=S.K." };
+
+        const walletBtn = document.getElementById('wallet-connect-btn');
+        const walletInfo = document.getElementById('wallet-info');
+        const walletAddressDisplay = document.getElementById('wallet-address-display');
+        const requestRideBtn = document.getElementById('request-ride-btn');
+        const requestStatus = document.getElementById('request-status');
+        const rideRequestForm = document.getElementById('ride-request-form');
+        const liveTripView = document.getElementById('live-trip-view');
+
+        const chatMessagesDiv = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const driverName = document.getElementById('driver-name');
+        const driverPhoto = document.getElementById('driver-photo');
+        const driverEta = document.getElementById('driver-eta');
+        const paidClearance = document.getElementById('paid-clearance');
+
+        // --- Wallet Logic ---
+        function connectWallet() {
+            if (walletConnected) return;
+            walletConnected = true;
+            walletBtn.classList.add('hidden');
+            walletInfo.classList.remove('hidden');
+            // Mocking a successful MetaMask/WalletConnect connection
+            const mockAddress = '0x0G...DAA89';
+            walletAddressDisplay.textContent = mockAddress;
+            requestRideBtn.disabled = false;
+            requestRideBtn.textContent = 'Request Cab & Lock Funds (0G)';
+            requestStatus.textContent = 'Wallet connected. Ready to lock fare.';
+        }
+
+        function disconnectWallet() {
+            walletConnected = false;
+            walletBtn.classList.remove('hidden');
+            walletInfo.classList.add('hidden');
+            requestRideBtn.disabled = true;
+            requestStatus.textContent = 'Connect wallet to request ride.';
+            // Reset to form view if not in a ride
+            if (currentRideId === null) {
+                rideRequestForm.classList.remove('hidden');
+                liveTripView.classList.add('hidden');
+            }
+        }
+
+        // --- Ride Request Logic ---
+        function handleRideRequest() {
+            if (!walletConnected) return;
+
+            requestRideBtn.disabled = true;
+            requestRideBtn.textContent = 'Securing funds on 0G...';
+            requestStatus.textContent = 'Waiting for transaction confirmation (Mining Fee: Dirt Cheap)';
+
+            // 1. SIMULATE ON-CHAIN requestRide() call
+            setTimeout(() => {
+                requestStatus.textContent = 'Funds locked! 0G Event Emitted. Dispatching drivers...';
+                
+                // 2. SIMULATE BACKEND DISPATCH (Wait for driver to accept)
+                setTimeout(handleRideAccepted, 4000); // 4 seconds for driver to accept
+            }, 5000); // 5 seconds for mock 0G tx time
+        }
+
+        // --- Ride Accepted Logic (Simulated 0G Event detected by Node.js) ---
+        function handleRideAccepted() {
+            currentRideId = RIDE_ID_MOCK;
+            
+            // UI Switch
+            rideRequestForm.classList.add('hidden');
+            liveTripView.classList.remove('hidden');
+            
+            // Set driver/chat info
+            driverName.textContent = driver.name;
+            driverPhoto.src = driver.photo;
+            driverEta.textContent = `ETA: ${driver.eta}`;
+            chatInput.disabled = false;
+            
+            appendChatMessage('System', `You are connected with ${driver.name}. Chat is enabled.`);
+            
+            // 3. SIMULATE DRIVER COMPLETION
+            setTimeout(handleRideCompleted, 20000); // Ride takes 20 seconds
+        }
+
+        // --- Ride Completion Logic (Simulated 0G Event detected by Node.js) ---
+        function handleRideCompleted() {
+             // 4. SIMULATE ON-CHAIN completeRide() call & SETTLEMENT
+             document.getElementById('final-tx-hash').textContent = '0xFINAL0GTX...5862B';
+             paidClearance.classList.remove('hidden');
+             currentRideId = null;
+        }
+
+
+        // --- Chat Logic ---
+        function appendChatMessage(sender, message) {
+            const isDriver = sender !== 'System' && sender !== 'You';
+            const msgElement = document.createElement('div');
+            msgElement.className = `p-2 my-1 rounded-lg ${isDriver ? 'bg-primary text-white self-start' : 'bg-gray-200 text-gray-800 self-end'}`;
+            msgElement.textContent = `${sender}: ${message}`;
+            chatMessagesDiv.appendChild(msgElement);
+            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight; // Scroll to bottom
+        }
+
+        function handleChatSend(event) {
+            event.preventDefault();
+            const message = chatInput.value;
+            if (message.trim() && currentRideId !== null) {
+                appendChatMessage('You', message); // Display on own screen
+                chatInput.value = '';
+
+                // SIMULATE SOCKET.IO PUSH TO DRIVER
+                setTimeout(() => {
+                    appendChatMessage(driver.name, `Got it, almost there! ETA: 1 min`);
+                }, 1500);
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        walletBtn.addEventListener('click', connectWallet);
+        requestRideBtn.addEventListener('click', handleRideRequest);
+        
+        const chatForm = document.createElement('form');
+        chatForm.onsubmit = handleChatSend;
+        chatForm.appendChild(chatInput);
+        document.getElementById('live-trip-view').querySelector('.bg-gray-50').appendChild(chatForm);
+
+
+        // --- INITIAL STATE ---
+        requestStatus.textContent = 'Connect wallet to request ride.';
+        
+    </script>
+</body>
+</html>
