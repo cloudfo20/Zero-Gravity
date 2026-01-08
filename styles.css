@@ -1,0 +1,19 @@
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin: 0; padding: 0; color: #111; background: #f6f7fb; }
+header { padding: 16px; background: #0b2038; color: #fff; }
+main { padding: 16px; max-width: 1100px; margin: 0 auto; }
+.controls { display: grid; gap: 8px; margin-bottom: 16px; }
+.controls label { display:block; font-size: 14px; }
+.controls input { width: 100%; padding: 8px; font-size: 14px; margin-top: 4px; }
+.buttons { display:flex; gap:8px; margin-top: 8px; }
+button { padding: 8px 12px; font-size: 14px; cursor: pointer; }
+.nft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.nft-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(2,6,23,0.08); overflow: hidden; display:flex; flex-direction:column; }
+.nft-card .media { height: 220px; background:#eee; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.nft-card img { width:100%; height:100%; object-fit:cover; }
+.nft-card .meta { padding: 12px; }
+.nft-card h3 { margin:0 0 6px 0; font-size:16px; }
+.nft-card .id { font-size: 12px; color: #666; margin:0 0 8px 0; }
+.nft-card .desc { font-size: 13px; color:#333; margin:0 0 8px 0; }
+.attrs { list-style:none; padding:0; margin: 8px 0 0 0; display:flex; gap:6px; flex-wrap:wrap; }
+.attrs li { background:#f0f4ff; padding:4px 6px; border-radius:6px; font-size:12px; color:#0b2b57; }
+.log { margin-top:16px; font-family: monospace; background:#fff; padding:12px; border-radius:8px; max-height:120px; overflow:auto; }
